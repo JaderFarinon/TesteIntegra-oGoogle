@@ -32,7 +32,7 @@ def load_assistant_settings(db: Session) -> Settings:
     if not config or not config.openai_api_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Configure a OpenAI API key via /api/settings antes de usar o chat.",
+            detail="Configure a OpenAI API key via /api/settings/openai antes de usar o chat.",
         )
     return config
 

@@ -51,11 +51,18 @@ const form = reactive({
 
 async function loadSettings() {
   loading.value = true
+  feedbackMessage.value = ''
   try {
     const { data } = await settingsApi.fetch()
-    if (!data) return
+    if (!data) {
+      feedbackType.value = 'info'
+      feedbackMessage.value = 'Nenhuma configuração salva ainda. Preencha os campos e clique em Salvar.'
+      return
+    }
     form.openai_api_key = data.openai_api_key || ''
     form.openai_model = data.openai_model || 'gpt-4.1-mini'
+    feedbackType.value = 'success'
+    feedbackMessage.value = 'Configuração carregada com sucesso.'
   } catch (error) {
     feedbackType.value = 'error'
     feedbackMessage.value = error?.response?.data?.detail || 'Falha ao carregar configurações.'

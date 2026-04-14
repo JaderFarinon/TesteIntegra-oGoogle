@@ -75,9 +75,8 @@ cp jarvis_web/.env.example jarvis_web/backend/.env
 cp jarvis_web/.env.example jarvis_web/frontend/.env
 ```
 
-3. Ajuste `OPENAI_API_KEY` no `jarvis_web/backend/.env`.
-
-> Se a chave não for definida, o chat responde em modo fallback local para facilitar testes.
+3. Configure URL da API no frontend (`VITE_API_BASE_URL`) caso necessário.
+4. Inicie a aplicação e cadastre a chave/modelo da OpenAI pela tela **Configurações**.
 
 ## Rodando o backend
 
@@ -108,11 +107,12 @@ npm run dev
 
 ### Sistema
 - `GET /` - health simples
-- `GET /api/settings` - informações de configuração pública
+- `GET /api/settings/openai` - retorna as configurações atuais (ou `null` se ainda não existir)
+- `PUT /api/settings/openai` - cria/atualiza `openai_api_key` e `openai_model` na tabela `settings`
 
-### Chat
-- `GET /api/chat/history` - lista histórico
-- `POST /api/chat` - envia mensagem para o assistente
+### Assistente
+- `GET /api/conversations` - lista conversas
+- `POST /api/assistant/chat` - envia mensagem para o assistente
 
 Body exemplo:
 
@@ -144,7 +144,7 @@ Módulos disponíveis:
 - **Notas**: cadastro/listagem/edição/exclusão
 - **Gastos**: cadastro/listagem/edição/exclusão
 - **Lembretes**: cadastro/listagem/edição/exclusão
-- **Configurações**: leitura de dados da API
+- **Configurações**: cadastro/edição da chave e modelo OpenAI com persistência em SQLite
 
 ## Observações de arquitetura
 

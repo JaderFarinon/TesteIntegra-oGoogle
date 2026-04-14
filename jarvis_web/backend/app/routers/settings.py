@@ -9,14 +9,18 @@ from app.schemas import SettingsCreate, SettingsOut
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
-@router.get("", response_model=SettingsOut | None)
-def get_settings(db: Session = Depends(get_db)):
+def _get_latest_settings(db: Session) -> Settings | None:
     return db.query(Settings).order_by(Settings.id.desc()).first()
 
 
-@router.post("", response_model=SettingsOut, status_code=status.HTTP_201_CREATED)
-def upsert_settings(payload: SettingsCreate, db: Session = Depends(get_db)):
-    config = db.query(Settings).order_by(Settings.id.desc()).first()
+@router.get("/openai", response_model=SettingsOut | None)
+def get_openai_settings(db: Session = Depends(get_db)):
+    return _get_latest_settings(db)
+
+
+@router.put("/openai", response_model=SettingsOut, status_code=status.HTTP_200_OK)
+def upsert_openai_settings(payload: SettingsCreate, db: Session = Depends(get_db)):
+    config = _get_latest_settings(db)
     if not config:
         config = Settings(**payload.model_dump())
         db.add(config)
@@ -27,3 +31,13 @@ def upsert_settings(payload: SettingsCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(config)
     return config
+
+
+@router.get("", response_model=SettingsOut | None, include_in_schema=False)
+def get_settings_legacy(db: Session = Depends(get_db)):
+    return _get_latest_settings(db)
+
+
+@router.post("", response_model=SettingsOut, status_code=status.HTTP_200_OK, include_in_schema=False)
+def upsert_settings_legacy(payload: SettingsCreate, db: Session = Depends(get_db)):
+    return upsert_openai_settings(payload, db)

@@ -35,8 +35,8 @@ export const chatApi = {
 }
 
 export const settingsApi = {
-  fetch: () => api.get('/api/settings'),
-  save: (payload) => api.post('/api/settings', payload),
+  fetch: () => api.get('/api/settings/openai'),
+  save: (payload) => api.put('/api/settings/openai', payload),
 }
 
 export default api
