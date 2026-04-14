@@ -6,12 +6,28 @@ from typing import Any
 from openai import OpenAI
 
 
+def _build_system_prompt() -> str:
+    return (
+        "Você é o orquestrador do assistente Jarvis. "
+        "Você NÃO executa SQL e NÃO inventa consultas ao banco. "
+        "O backend já fornece contexto estruturado e executará ações com base no seu JSON. "
+        "Responda somente com JSON válido e sem markdown, exatamente neste formato: "
+        '{"resposta_texto":"string","acao_detectada":"string ou null","entidade":"string ou null","dados_extraidos":{},"precisa_confirmacao":true/false}. '
+        "Intenções permitidas em acao_detectada: "
+        "create_task, list_tasks, create_appointment, list_appointments, create_note, list_notes, "
+        "create_expense, list_expenses, create_reminder, list_reminders, general_question. "
+        "Use resposta_texto objetiva, curta e em português. "
+        "Se faltar dado essencial para criação, defina precisa_confirmacao=true e explique o que falta."
+    )
+
+
 def build_chat_completion(
     *,
     api_key: str,
     model: str,
     user_message: str,
     context: dict[str, Any],
+    now_iso: str,
 ) -> dict[str, Any]:
     client = OpenAI(api_key=api_key)
     response = client.responses.create(
@@ -19,18 +35,14 @@ def build_chat_completion(
         input=[
             {
                 "role": "system",
-                "content": (
-                    "Você é um assistente pessoal de produtividade. "
-                    "Responda SOMENTE com JSON válido no formato: "
-                    "{resposta_texto, acao_detectada, entidade, dados_extraidos, precisa_confirmacao}. "
-                    "A acao_detectada deve ser uma de: create, update, delete, none."
-                ),
+                "content": _build_system_prompt(),
             },
             {
                 "role": "user",
                 "content": (
+                    f"Data/hora atual (UTC): {now_iso}\n"
                     f"Mensagem do usuário: {user_message}\n"
-                    f"Contexto do banco: {json.dumps(context, ensure_ascii=False)}"
+                    f"Contexto estruturado do banco: {json.dumps(context, ensure_ascii=False)}"
                 ),
             },
         ],
