@@ -153,11 +153,11 @@ class AssistantChatIn(BaseModel):
 
 
 class AssistantContextOut(BaseModel):
-    pending_tasks: list[dict[str, Any]]
-    upcoming_appointments: list[dict[str, Any]]
-    future_reminders: list[dict[str, Any]]
-    recent_expenses: list[dict[str, Any]]
-    recent_notes: list[dict[str, Any]]
+    tarefas_pendentes: list[dict[str, Any]]
+    proximos_compromissos: list[dict[str, Any]]
+    lembretes: list[dict[str, Any]]
+    gastos_recentes: list[dict[str, Any]]
+    notas_recentes: list[dict[str, Any]]
 
 
 class AssistantChatOut(BaseModel):

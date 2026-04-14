@@ -37,7 +37,17 @@ def load_assistant_settings(db: Session) -> Settings:
     return config
 
 
+def _compact_text(value: str | None, *, limit: int = 140) -> str | None:
+    if value is None:
+        return None
+    text = " ".join(value.split())
+    if len(text) <= limit:
+        return text
+    return f"{text[: limit - 3]}..."
+
+
 def build_db_context(db: Session) -> dict[str, Any]:
+    now_utc = datetime.utcnow()
     pending_tasks = (
         db.query(Task)
         .filter(Task.status.in_(["pending", "in_progress"]))
@@ -47,14 +57,14 @@ def build_db_context(db: Session) -> dict[str, Any]:
     )
     upcoming_appointments = (
         db.query(Appointment)
-        .filter(Appointment.date >= datetime.utcnow().date())
+        .filter(Appointment.date >= now_utc.date())
         .order_by(Appointment.date.asc(), Appointment.time.asc())
         .limit(10)
         .all()
     )
     future_reminders = (
         db.query(Reminder)
-        .filter(Reminder.remind_at >= datetime.utcnow())
+        .filter(Reminder.remind_at >= now_utc)
         .order_by(Reminder.remind_at.asc())
         .limit(10)
         .all()
@@ -63,17 +73,18 @@ def build_db_context(db: Session) -> dict[str, Any]:
     recent_notes = db.query(Note).order_by(Note.created_at.desc()).limit(10).all()
 
     return {
-        "pending_tasks": [
+        "tarefas_pendentes": [
             {
                 "id": task.id,
                 "title": task.title,
+                "description": _compact_text(task.description),
                 "priority": task.priority,
                 "status": task.status,
                 "due_date": task.due_date.isoformat() if task.due_date else None,
             }
             for task in pending_tasks
         ],
-        "upcoming_appointments": [
+        "proximos_compromissos": [
             {
                 "id": appointment.id,
                 "title": appointment.title,
@@ -84,16 +95,17 @@ def build_db_context(db: Session) -> dict[str, Any]:
             }
             for appointment in upcoming_appointments
         ],
-        "future_reminders": [
+        "lembretes": [
             {
                 "id": reminder.id,
                 "title": reminder.title,
+                "description": _compact_text(reminder.description),
                 "remind_at": reminder.remind_at.isoformat(),
                 "status": reminder.status,
             }
             for reminder in future_reminders
         ],
-        "recent_expenses": [
+        "gastos_recentes": [
             {
                 "id": expense.id,
                 "description": expense.description,
@@ -103,7 +115,7 @@ def build_db_context(db: Session) -> dict[str, Any]:
             }
             for expense in recent_expenses
         ],
-        "recent_notes": [
+        "notas_recentes": [
             {
                 "id": note.id,
                 "title": note.title,
