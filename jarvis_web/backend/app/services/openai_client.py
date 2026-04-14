@@ -1,27 +1,39 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
 from openai import OpenAI
 
-from app.core.config import settings
 
-
-def ask_openai(message: str) -> str:
-    if not settings.openai_api_key:
-        return (
-            "OPENAI_API_KEY não configurada. Mensagem recebida com sucesso: "
-            f"{message[:180]}"
-        )
-
-    client = OpenAI(api_key=settings.openai_api_key)
+def build_chat_completion(
+    *,
+    api_key: str,
+    model: str,
+    user_message: str,
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    client = OpenAI(api_key=api_key)
     response = client.responses.create(
-        model=settings.openai_model,
+        model=model,
         input=[
             {
                 "role": "system",
                 "content": (
-                    "Você é Jarvis, assistente pessoal focado em organização, "
-                    "tarefas e produtividade. Seja objetivo e útil."
+                    "Você é um assistente pessoal de produtividade. "
+                    "Responda SOMENTE com JSON válido no formato: "
+                    "{resposta_texto, acao_detectada, entidade, dados_extraidos, precisa_confirmacao}. "
+                    "A acao_detectada deve ser uma de: create, update, delete, none."
                 ),
             },
-            {"role": "user", "content": message},
+            {
+                "role": "user",
+                "content": (
+                    f"Mensagem do usuário: {user_message}\n"
+                    f"Contexto do banco: {json.dumps(context, ensure_ascii=False)}"
+                ),
+            },
         ],
     )
-    return response.output_text
+    payload = response.output_text.strip()
+    return json.loads(payload)

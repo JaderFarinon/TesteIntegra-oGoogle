@@ -1,85 +1,169 @@
-from datetime import datetime
+from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from datetime import date, datetime, time
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class BaseOut(BaseModel):
+class ORMModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TimestampOut(ORMModel):
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class SettingsCreate(BaseModel):
+    openai_api_key: str | None = Field(default=None, max_length=255)
+    openai_model: str = Field(default="gpt-4.1-mini", max_length=100)
 
 
-class TaskCreate(BaseModel):
+class SettingsOut(TimestampOut):
+    openai_api_key: str | None = None
+    openai_model: str
+
+
+class ConversationCreate(BaseModel):
     title: str = Field(..., max_length=200)
-    description: str | None = None
-    completed: bool = False
-    due_date: str | None = None
 
 
-class TaskOut(BaseOut, TaskCreate):
-    pass
-
-
-class AppointmentCreate(BaseModel):
+class ConversationOut(TimestampOut):
     title: str
-    location: str | None = None
-    start_time: str
-    end_time: str | None = None
-    notes: str | None = None
 
 
-class AppointmentOut(BaseOut, AppointmentCreate):
-    pass
-
-
-class NoteCreate(BaseModel):
-    title: str
+class MessageCreate(BaseModel):
+    conversation_id: int
+    role: str = Field(..., max_length=20)
     content: str
 
 
-class NoteOut(BaseOut, NoteCreate):
-    pass
-
-
-class ExpenseCreate(BaseModel):
-    description: str
-    amount: float
-    category: str | None = None
-    expense_date: str
-
-
-class ExpenseOut(BaseOut, ExpenseCreate):
-    pass
-
-
-class ReminderCreate(BaseModel):
-    message: str
-    remind_at: str
-    done: bool = False
-
-
-class ReminderOut(BaseOut, ReminderCreate):
-    pass
-
-
-class ChatPrompt(BaseModel):
-    message: str
-
-
-class ChatMessageOut(BaseOut):
+class MessageOut(ORMModel):
+    id: int
+    conversation_id: int
     role: str
+    content: str
+    created_at: datetime
+
+
+class TaskBase(BaseModel):
+    title: str = Field(..., max_length=200)
+    description: str | None = None
+    priority: str = Field(default="medium", max_length=20)
+    status: str = Field(default="pending", max_length=30)
+    due_date: date | None = None
+
+
+class TaskCreate(TaskBase):
+    pass
+
+
+class TaskUpdate(TaskBase):
+    pass
+
+
+class TaskOut(TimestampOut, TaskBase):
+    pass
+
+
+class AppointmentBase(BaseModel):
+    title: str = Field(..., max_length=200)
+    description: str | None = None
+    date: date
+    time: time
+    location: str | None = Field(default=None, max_length=200)
+    status: str = Field(default="scheduled", max_length=30)
+
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+
+class AppointmentUpdate(AppointmentBase):
+    pass
+
+
+class AppointmentOut(TimestampOut, AppointmentBase):
+    pass
+
+
+class NoteBase(BaseModel):
+    title: str = Field(..., max_length=200)
+    content: str
+    tag: str | None = Field(default=None, max_length=100)
+
+
+class NoteCreate(NoteBase):
+    pass
+
+
+class NoteUpdate(NoteBase):
+    pass
+
+
+class NoteOut(TimestampOut, NoteBase):
+    pass
+
+
+class ExpenseBase(BaseModel):
+    description: str = Field(..., max_length=200)
+    amount: float
+    category: str | None = Field(default=None, max_length=100)
+    expense_date: date
+    payment_method: str | None = Field(default=None, max_length=80)
+    notes: str | None = None
+
+
+class ExpenseCreate(ExpenseBase):
+    pass
+
+
+class ExpenseUpdate(ExpenseBase):
+    pass
+
+
+class ExpenseOut(TimestampOut, ExpenseBase):
+    pass
+
+
+class ReminderBase(BaseModel):
+    title: str = Field(..., max_length=200)
+    description: str | None = None
+    remind_at: datetime
+    status: str = Field(default="pending", max_length=30)
+
+
+class ReminderCreate(ReminderBase):
+    pass
+
+
+class ReminderUpdate(ReminderBase):
+    pass
+
+
+class ReminderOut(TimestampOut, ReminderBase):
+    pass
+
+
+class AssistantChatIn(BaseModel):
     message: str
+    conversation_id: int | None = None
 
 
-class ChatResponse(BaseModel):
-    answer: str
-    history: list[ChatMessageOut]
+class AssistantContextOut(BaseModel):
+    pending_tasks: list[dict[str, Any]]
+    upcoming_appointments: list[dict[str, Any]]
+    pending_reminders: list[dict[str, Any]]
+    recent_expenses: list[dict[str, Any]]
 
 
-class SettingsOut(BaseModel):
-    app_name: str
-    app_env: str
-    openai_model: str
+class AssistantChatOut(BaseModel):
+    resposta_texto: str
+    acao_detectada: str | None = None
+    entidade: str | None = None
+    dados_extraidos: dict[str, Any] = Field(default_factory=dict)
+    precisa_confirmacao: bool = False
+    conversation_id: int
+    message_id: int
