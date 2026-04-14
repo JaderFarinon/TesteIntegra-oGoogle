@@ -1,42 +1,240 @@
-# jarvis_web (FastAPI + Vue + SQLite)
+# jarvis_web
 
-Projeto full-stack do assistente Jarvis, pronto para execução local com backend FastAPI, frontend Vue/Vite e banco SQLite criado automaticamente.
+README final, direto e completo para rodar o projeto localmente em **Debian/Ubuntu**.
 
-## Stack
+## 1) Requisitos
 
-- Backend: FastAPI + SQLAlchemy + SQLite
-- Frontend: Vue 3 + Vite + Tailwind
-- IA: OpenAI API (chave persistida no SQLite)
-
----
-
-## Execução local (Debian/Ubuntu)
-
-### 1) Pré-requisitos do sistema
+Instale os pacotes básicos do sistema:
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip nodejs npm
+sudo apt install -y \
+  python3 python3-venv python3-pip \
+  curl ca-certificates gnupg
 ```
 
-### 2) Backend
+> O frontend usa Node.js. Se sua distro já tiver Node recente, pode usar `sudo apt install -y nodejs npm`.
+> Caso contrário, instale Node LTS pelo repositório oficial do NodeSource.
+
+---
+
+## 2) Versão recomendada do Python
+
+- **Python 3.11** (recomendado)
+- Mínimo prático: Python 3.10+
+
+Verifique:
+
+```bash
+python3 --version
+```
+
+---
+
+## 3) Versão recomendada do Node.js
+
+- **Node.js 20 LTS** (recomendado)
+- npm 10+
+
+Verifique:
+
+```bash
+node -v
+npm -v
+```
+
+Se precisar instalar Node 20 no Debian/Ubuntu:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+---
+
+## 4) Criação do ambiente virtual Python
+
+No diretório do backend:
+
+```bash
+cd jarvis_web/backend
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+---
+
+## 5) Instalação das dependências do backend
+
+Ainda em `jarvis_web/backend`:
+
+```bash
+cp .env.example .env
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Dependências principais: FastAPI, SQLAlchemy, Uvicorn e OpenAI SDK.
+
+---
+
+## 6) Instalação das dependências do frontend
+
+Em outro terminal:
+
+```bash
+cd jarvis_web/frontend
+cp .env.example .env
+npm install
+```
+
+---
+
+## 7) Como rodar o backend
+
+Com o virtualenv ativo:
+
+```bash
+cd jarvis_web/backend
+source .venv/bin/activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Backend/API:
+
+- `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
+
+---
+
+## 8) Como rodar o frontend
+
+Em outro terminal:
+
+```bash
+cd jarvis_web/frontend
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+---
+
+## 9) Endereço local de acesso
+
+- **Aplicação web (frontend):** `http://localhost:5173`
+- **API backend:** `http://localhost:8000`
+- **Documentação da API:** `http://localhost:8000/docs`
+
+---
+
+## 10) Arquitetura resumida
+
+- **Frontend (Vue 3 + Vite):** interface do usuário e telas de módulos (tarefas, notas, gastos, etc.).
+- **Backend (FastAPI):** expõe APIs REST em `/api/*`, valida dados e aplica regras de negócio.
+- **Banco (SQLite):** persistência local de tarefas, lembretes, conversas e configurações.
+- **Assistente IA:** backend lê a configuração OpenAI salva no banco e chama a API da OpenAI no endpoint de chat.
+
+Fluxo:
+
+1. Usuário interage no frontend.
+2. Frontend chama backend (`/api/...`).
+3. Backend lê/grava no SQLite.
+4. No chat, backend usa chave OpenAI salva em configurações.
+
+---
+
+## 11) Localização do arquivo SQLite
+
+Por padrão, o backend usa:
+
+- `sqlite:///./jarvis_web.db`
+
+Na prática, executando a API a partir de `jarvis_web/backend`, o arquivo fica em:
+
+- `jarvis_web/backend/jarvis_web.db`
+
+---
+
+## 12) Como configurar a chave OpenAI pela interface
+
+1. Abra o frontend em `http://localhost:5173`.
+2. Vá para a tela **Configurações**.
+3. Informe:
+   - `openai_api_key`
+   - `openai_model` (opcional; padrão recomendado do projeto já é aplicado)
+4. Salve.
+
+Essa configuração é enviada para `PUT /api/settings/openai` e fica persistida no SQLite.
+
+---
+
+## 13) Problemas comuns e como resolver
+
+### Erro: `python3 -m venv` não funciona
+
+Instale o pacote de venv:
+
+```bash
+sudo apt install -y python3-venv
+```
+
+### Erro: `uvicorn: command not found`
+
+Você provavelmente não ativou o virtualenv:
+
+```bash
+cd jarvis_web/backend
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Erro de CORS no frontend
+
+Confirme:
+
+- Frontend em `http://localhost:5173`
+- Backend em `http://localhost:8000`
+- `VITE_API_BASE_URL` apontando para o backend no `.env` do frontend.
+
+### Porta ocupada (8000 ou 5173)
+
+Troque a porta:
+
+```bash
+# backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+
+# frontend
+npm run dev -- --host 0.0.0.0 --port 5174
+```
+
+### Chat não responde / erro de autenticação OpenAI
+
+- Verifique se a chave foi salva em **Configurações**.
+- Teste o endpoint `GET /api/settings/openai`.
+- Confira se há saldo/permissão na conta OpenAI e se o modelo configurado é válido.
+
+### Banco não criado
+
+- Verifique permissões de escrita na pasta `jarvis_web/backend`.
+- Confirme que o backend subiu sem erro na inicialização.
+
+---
+
+## Execução rápida (resumo)
+
+Terminal 1 (backend):
 
 ```bash
 cd jarvis_web/backend
 python3 -m venv .venv
 source .venv/bin/activate
 cp .env.example .env
-pip install --upgrade pip
+pip install -U pip
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend disponível em:
-
-- API: `http://localhost:8000`
-- Swagger: `http://localhost:8000/docs`
-
-### 3) Frontend (em outro terminal)
+Terminal 2 (frontend):
 
 ```bash
 cd jarvis_web/frontend
@@ -45,61 +243,4 @@ npm install
 npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-Frontend disponível em:
-
-- `http://localhost:5173`
-
----
-
-## Banco SQLite automático
-
-- O backend usa `DATABASE_URL=sqlite:///./jarvis_web.db` por padrão.
-- Ao iniciar o FastAPI, ele:
-  1. cria a pasta do arquivo (se necessário),
-  2. cria o arquivo SQLite (se não existir),
-  3. cria as tabelas automaticamente,
-  4. aplica seed inicial opcional (`DATABASE_SEED_ENABLED=true`) quando banco está vazio.
-
----
-
-## Fluxo de configuração da OpenAI
-
-1. Abra o frontend em `/configuracoes`.
-2. Salve `openai_api_key` e `openai_model`.
-3. O backend persiste no SQLite (`settings`) e usa essa chave nas chamadas do chat (`/api/assistant/chat`).
-
----
-
-## Rotas principais
-
-- Saúde: `GET /api/health`
-- OpenAI settings: `GET|PUT /api/settings/openai`
-- Assistente:
-  - `GET /api/assistant/context`
-  - `POST /api/assistant/chat`
-- CRUD:
-  - `tasks`: `GET|POST /api/tasks`, `PUT|DELETE /api/tasks/{id}`
-  - `appointments`: `GET|POST /api/appointments`, `PUT|DELETE /api/appointments/{id}`
-  - `notes`: `GET|POST /api/notes`, `PUT|DELETE /api/notes/{id}`
-  - `expenses`: `GET|POST /api/expenses`, `PUT|DELETE /api/expenses/{id}`
-  - `reminders`: `GET|POST /api/reminders`, `PUT|DELETE /api/reminders/{id}`
-
----
-
-## Verificação rápida (smoke test)
-
-Com backend dependencies instaladas:
-
-```bash
-cd jarvis_web/backend
-PYTHONPATH=. python3 scripts/smoke_test.py
-```
-
-Esse script valida:
-
-- healthcheck,
-- gravação/leitura de configurações OpenAI,
-- CRUD de tarefas/compromissos/notas/gastos/lembretes,
-- contexto do assistente,
-- chat chamando backend e usando chave salva no banco.
-
+Acesse: **http://localhost:5173**
