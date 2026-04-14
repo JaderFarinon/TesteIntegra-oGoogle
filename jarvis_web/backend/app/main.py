@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.db import engine
-from app.models import Base
+from app.db import init_database
 from app.routers.appointments import router as appointments_router
 from app.routers.assistant import router as assistant_router
 from app.routers.conversations import router as conversations_router
@@ -27,7 +26,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event() -> None:
-    Base.metadata.create_all(bind=engine)
+    init_database()
 
 
 @app.get("/")
