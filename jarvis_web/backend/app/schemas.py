@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,12 +17,12 @@ class TimestampOut(ORMModel):
 
 
 class SettingsCreate(BaseModel):
-    openai_api_key: str | None = Field(default=None, max_length=255)
+    openai_api_key: Optional[str] = Field(default=None, max_length=255)
     openai_model: str = Field(default="gpt-4.1-mini", max_length=100)
 
 
 class SettingsOut(TimestampOut):
-    openai_api_key: str | None = None
+    openai_api_key: Optional[str] = None
     openai_model: str
 
 
@@ -50,10 +50,10 @@ class MessageOut(ORMModel):
 
 class TaskBase(BaseModel):
     title: str = Field(..., max_length=200)
-    description: str | None = None
+    description: Optional[str] = None
     priority: str = Field(default="medium", max_length=20)
     status: str = Field(default="pending", max_length=30)
-    due_date: date | None = None
+    due_date: Optional[date] = None
 
 
 class TaskCreate(TaskBase):
@@ -70,10 +70,10 @@ class TaskOut(TimestampOut, TaskBase):
 
 class AppointmentBase(BaseModel):
     title: str = Field(..., max_length=200)
-    description: str | None = None
+    description: Optional[str] = None
     date: date
     time: time
-    location: str | None = Field(default=None, max_length=200)
+    location: Optional[str] = Field(default=None, max_length=200)
     status: str = Field(default="scheduled", max_length=30)
 
 
@@ -92,7 +92,7 @@ class AppointmentOut(TimestampOut, AppointmentBase):
 class NoteBase(BaseModel):
     title: str = Field(..., max_length=200)
     content: str
-    tag: str | None = Field(default=None, max_length=100)
+    tag: Optional[str] = Field(default=None, max_length=100)
 
 
 class NoteCreate(NoteBase):
@@ -110,10 +110,10 @@ class NoteOut(TimestampOut, NoteBase):
 class ExpenseBase(BaseModel):
     description: str = Field(..., max_length=200)
     amount: float
-    category: str | None = Field(default=None, max_length=100)
+    category: Optional[str] = Field(default=None, max_length=100)
     expense_date: date
-    payment_method: str | None = Field(default=None, max_length=80)
-    notes: str | None = None
+    payment_method: Optional[str] = Field(default=None, max_length=80)
+    notes: Optional[str] = None
 
 
 class ExpenseCreate(ExpenseBase):
@@ -130,7 +130,7 @@ class ExpenseOut(TimestampOut, ExpenseBase):
 
 class ReminderBase(BaseModel):
     title: str = Field(..., max_length=200)
-    description: str | None = None
+    description: Optional[str] = None
     remind_at: datetime
     status: str = Field(default="pending", max_length=30)
 
@@ -149,7 +149,7 @@ class ReminderOut(TimestampOut, ReminderBase):
 
 class AssistantChatIn(BaseModel):
     message: str
-    conversation_id: int | None = None
+    conversation_id: Optional[int] = None
 
 
 class AssistantContextOut(BaseModel):
@@ -162,8 +162,8 @@ class AssistantContextOut(BaseModel):
 
 class AssistantChatOut(BaseModel):
     resposta_texto: str
-    acao_detectada: str | None = None
-    entidade: str | None = None
+    acao_detectada: Optional[str] = None
+    entidade: Optional[str] = None
     dados_extraidos: dict[str, Any] = Field(default_factory=dict)
     precisa_confirmacao: bool = False
     conversation_id: int
