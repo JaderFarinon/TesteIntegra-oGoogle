@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -28,7 +30,7 @@ def create_conversation(payload: ConversationCreate, db: Session = Depends(get_d
 
 
 @router.get("/messages", response_model=list[MessageOut])
-def list_messages(conversation_id: int | None = None, db: Session = Depends(get_db)):
+def list_messages(conversation_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(Message)
     if conversation_id is not None:
         query = query.filter(Message.conversation_id == conversation_id)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -9,11 +11,11 @@ from app.schemas import SettingsCreate, SettingsOut
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
-def _get_latest_settings(db: Session) -> Settings | None:
+def _get_latest_settings(db: Session) -> Optional[Settings]:
     return db.query(Settings).order_by(Settings.id.desc()).first()
 
 
-@router.get("/openai", response_model=SettingsOut | None)
+@router.get("/openai", response_model=Optional[SettingsOut])
 def get_openai_settings(db: Session = Depends(get_db)):
     return _get_latest_settings(db)
 
@@ -33,7 +35,7 @@ def upsert_openai_settings(payload: SettingsCreate, db: Session = Depends(get_db
     return config
 
 
-@router.get("", response_model=SettingsOut | None, include_in_schema=False)
+@router.get("", response_model=Optional[SettingsOut], include_in_schema=False)
 def get_settings_legacy(db: Session = Depends(get_db)):
     return _get_latest_settings(db)
 

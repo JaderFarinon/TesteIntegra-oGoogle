@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -37,7 +37,7 @@ def load_assistant_settings(db: Session) -> Settings:
     return config
 
 
-def _compact_text(value: str | None, *, limit: int = 140) -> str | None:
+def _compact_text(value: Optional[str], *, limit: int = 140) -> Optional[str]:
     if value is None:
         return None
     text = " ".join(value.split())
@@ -127,7 +127,7 @@ def build_db_context(db: Session) -> dict[str, Any]:
     }
 
 
-def _entity_from_intent(intent: str | None) -> str | None:
+def _entity_from_intent(intent: Optional[str]) -> Optional[str]:
     if not intent or intent == "general_question":
         return None
     if intent.endswith("_tasks") or intent.endswith("_task"):
@@ -179,7 +179,7 @@ def validate_ai_response(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _required_fields_for_intent(intent: str | None) -> set[str]:
+def _required_fields_for_intent(intent: Optional[str]) -> set[str]:
     return {
         "create_task": {"title"},
         "create_appointment": {"title", "date", "time"},
@@ -275,7 +275,7 @@ def save_chat_messages(
     return assistant_message
 
 
-def ensure_conversation(db: Session, conversation_id: int | None, initial_user_message: str) -> Conversation:
+def ensure_conversation(db: Session, conversation_id: Optional[int], initial_user_message: str) -> Conversation:
     if conversation_id is None:
         conversation = Conversation(title=initial_user_message[:80] or "Nova conversa")
         db.add(conversation)
