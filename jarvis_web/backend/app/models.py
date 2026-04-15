@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import date, datetime, time
 from typing import Optional
 
@@ -35,7 +33,7 @@ class Conversation(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
 
-    messages: Mapped[list[Message]] = relationship(
+    messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation", cascade="all, delete-orphan"
     )
 
@@ -51,7 +49,7 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    conversation: Mapped[Conversation] = relationship(back_populates="messages")
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
 
 class Task(Base, TimestampMixin):
