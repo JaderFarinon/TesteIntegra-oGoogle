@@ -23,7 +23,7 @@ class Settings(Base, TimestampMixin):
     __tablename__ = "settings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    openai_api_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    openai_api_key: Mapped[Optional[str]] = mapped_column(String(255), default=None, nullable=True)
     openai_model: Mapped[str] = mapped_column(String(100), default="gpt-4.1-mini", nullable=False)
 
 
@@ -57,10 +57,10 @@ class Task(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
     priority: Mapped[str] = mapped_column(String(20), default="medium", nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
-    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(Date, default=None, nullable=True)
 
 
 class Appointment(Base, TimestampMixin):
@@ -68,10 +68,10 @@ class Appointment(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
     date: Mapped[date] = mapped_column(Date, nullable=False)
     time: Mapped[time] = mapped_column(Time, nullable=False)
-    location: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    location: Mapped[Optional[str]] = mapped_column(String(200), default=None, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="scheduled", nullable=False)
 
 
@@ -81,7 +81,7 @@ class Note(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    tag: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tag: Mapped[Optional[str]] = mapped_column(String(100), default=None, nullable=True)
 
 
 class Expense(Base, TimestampMixin):
@@ -90,10 +90,10 @@ class Expense(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     description: Mapped[str] = mapped_column(String(200), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
-    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(100), default=None, nullable=True)
     expense_date: Mapped[date] = mapped_column(Date, nullable=False)
-    payment_method: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payment_method: Mapped[Optional[str]] = mapped_column(String(80), default=None, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
 
 
 class Reminder(Base, TimestampMixin):
@@ -101,6 +101,6 @@ class Reminder(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
     remind_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)

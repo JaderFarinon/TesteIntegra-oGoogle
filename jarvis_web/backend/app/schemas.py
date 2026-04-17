@@ -20,7 +20,7 @@ class SettingsCreate(BaseModel):
 
 
 class SettingsOut(TimestampOut):
-    openai_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = Field(default=None, max_length=255)
     openai_model: str
 
 
@@ -48,7 +48,7 @@ class MessageOut(ORMModel):
 
 class TaskBase(BaseModel):
     title: str = Field(..., max_length=200)
-    description: Optional[str] = None
+    description: Optional[str] = Field(default=None)
     priority: str = Field(default="medium", max_length=20)
     status: str = Field(default="pending", max_length=30)
     due_date: Optional[date] = None
@@ -128,7 +128,7 @@ class ExpenseOut(TimestampOut, ExpenseBase):
 
 class ReminderBase(BaseModel):
     title: str = Field(..., max_length=200)
-    description: Optional[str] = None
+    description: Optional[str] = Field(default=None)
     remind_at: datetime
     status: str = Field(default="pending", max_length=30)
 
@@ -147,7 +147,7 @@ class ReminderOut(TimestampOut, ReminderBase):
 
 class AssistantChatIn(BaseModel):
     message: str
-    conversation_id: Optional[int] = None
+    conversation_id: Optional[int] = Field(default=None)
 
 
 class AssistantContextOut(BaseModel):
