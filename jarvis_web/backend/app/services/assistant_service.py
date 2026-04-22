@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 
 from fastapi import HTTPException, status
@@ -9,12 +9,19 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings as app_settings
 from app.models import Appointment, Conversation, Expense, Message, Note, Reminder, Settings, Task
-from app.schemas import AssistantChatIn, AssistantChatOut
+from app.schemas import AssistantChatIn, AssistantChatOut, RecurringTaskCreate, TaskUpdate
 from app.services.openai_client import build_chat_completion
+from app.services.recurrence_normalizer import normalize_recurrence_input
+from app.services.task_recurrence_service import create_recurring_tasks_batch, delete_tasks_by_scope, update_tasks_by_scope
 
 SUPPORTED_INTENTS = {
     "create_task",
+    "create_recurring_task",
     "list_tasks",
+    "update_task",
+    "update_recurring_task",
+    "delete_task",
+    "delete_recurring_task",
     "create_appointment",
     "list_appointments",
     "create_note",
@@ -25,6 +32,7 @@ SUPPORTED_INTENTS = {
     "list_reminders",
     "general_question",
 }
+VALID_SCOPES = {"single", "future", "all"}
 
 
 def load_assistant_settings(db: Session) -> Settings:
@@ -81,6 +89,8 @@ def build_db_context(db: Session) -> dict[str, Any]:
                 "priority": task.priority,
                 "status": task.status,
                 "due_date": task.due_date.isoformat() if task.due_date else None,
+                "is_recurring": task.is_recurring,
+                "recurrence_group_id": task.recurrence_group_id,
             }
             for task in pending_tasks
         ],
@@ -182,6 +192,11 @@ def validate_ai_response(payload: dict[str, Any]) -> dict[str, Any]:
 def _required_fields_for_intent(intent: Optional[str]) -> set[str]:
     return {
         "create_task": {"title"},
+        "create_recurring_task": {"title", "start_date", "end_date", "recurrence_pattern"},
+        "update_task": {"fields"},
+        "update_recurring_task": {"fields"},
+        "delete_task": set(),
+        "delete_recurring_task": set(),
         "create_appointment": {"title", "date", "time"},
         "create_note": {"title", "content"},
         "create_expense": {"description", "amount", "expense_date"},
@@ -190,10 +205,84 @@ def _required_fields_for_intent(intent: Optional[str]) -> set[str]:
 
 
 def _mark_confirmation_if_needed(result: dict[str, Any]) -> dict[str, Any]:
-    required = _required_fields_for_intent(result["acao_detectada"])
-    if required and not required.issubset(result["dados_extraidos"].keys()):
+    intent = result["acao_detectada"]
+    data = result["dados_extraidos"]
+
+    required = _required_fields_for_intent(intent)
+    if required and not required.issubset(data.keys()):
         result["precisa_confirmacao"] = True
+
+    if intent == "create_recurring_task" and not data.get("end_date"):
+        result["precisa_confirmacao"] = True
+
+    if intent in {"update_recurring_task", "delete_recurring_task"}:
+        scope = data.get("scope")
+        if scope not in VALID_SCOPES:
+            result["precisa_confirmacao"] = True
+            if not result.get("resposta_texto"):
+                result["resposta_texto"] = (
+                    "Você quer mudar só esta tarefa, esta e as futuras, ou todas da recorrência?"
+                )
+
     return result
+
+
+def _parse_iso_date(value: str, field_name: str) -> date:
+    try:
+        return datetime.fromisoformat(value).date()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"{field_name} deve estar em formato ISO (YYYY-MM-DD)") from exc
+
+
+def _resolve_task_reference(db: Session, data: dict[str, Any]) -> Task:
+    task_id = data.get("task_id")
+    title = data.get("title")
+
+    if task_id is not None:
+        task = db.get(Task, int(task_id))
+        if not task:
+            raise HTTPException(status_code=404, detail="Task de referência não encontrada")
+        return task
+
+    if isinstance(title, str) and title.strip():
+        matches = db.query(Task).filter(Task.title.ilike(title.strip())).order_by(Task.created_at.desc()).all()
+        if not matches:
+            raise HTTPException(status_code=404, detail="Nenhuma task encontrada com esse título")
+        if len(matches) > 1:
+            raise HTTPException(
+                status_code=422,
+                detail="Há múltiplas tasks com esse título. Informe task_id para evitar ambiguidade",
+            )
+        return matches[0]
+
+    raise HTTPException(status_code=422, detail="Informe task_id ou title para identificar a task")
+
+
+def _build_task_update_fields(data: dict[str, Any]) -> dict[str, Any]:
+    fields = data.get("fields") or {}
+    if not isinstance(fields, dict) or not fields:
+        raise HTTPException(status_code=422, detail="Informe fields com os campos que deseja atualizar")
+
+    allowed = {
+        "title",
+        "description",
+        "priority",
+        "status",
+        "due_date",
+        "is_recurring",
+        "recurrence_group_id",
+        "recurrence_pattern",
+        "recurrence_meta",
+        "original_prompt",
+    }
+    unknown = set(fields.keys()) - allowed
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Campos inválidos para update: {', '.join(sorted(unknown))}")
+
+    if "due_date" in fields and fields["due_date"] is not None:
+        fields["due_date"] = _parse_iso_date(fields["due_date"], "due_date")
+
+    return fields
 
 
 def execute_detected_action(db: Session, result: dict[str, Any]) -> None:
@@ -210,8 +299,70 @@ def execute_detected_action(db: Session, result: dict[str, Any]) -> None:
                 description=data.get("description"),
                 priority=data.get("priority", "medium"),
                 status=data.get("status", "pending"),
-                due_date=datetime.fromisoformat(data["due_date"]).date() if data.get("due_date") else None,
+                due_date=_parse_iso_date(data["due_date"], "due_date") if data.get("due_date") else None,
             )
+        )
+        return
+
+    if intent == "create_recurring_task":
+        normalized = normalize_recurrence_input(data)
+        create_recurring_tasks_batch(
+            db,
+            RecurringTaskCreate(
+                title=data["title"],
+                description=data.get("description"),
+                priority=data.get("priority", "medium"),
+                status=data.get("status", "pending"),
+                start_date=normalized["start_date"],
+                end_date=normalized["end_date"],
+                recurrence_pattern=normalized["recurrence_pattern"],
+                recurrence_meta=normalized["recurrence_meta"],
+                original_prompt=data.get("original_prompt"),
+            ),
+        )
+        return
+
+    if intent == "update_task":
+        task = _resolve_task_reference(db, data)
+        fields = _build_task_update_fields(data)
+        for key, value in fields.items():
+            setattr(task, key, value)
+        return
+
+    if intent == "update_recurring_task":
+        task = _resolve_task_reference(db, data)
+        scope = data.get("scope", "single")
+        fields = _build_task_update_fields(data)
+
+        if scope not in VALID_SCOPES:
+            raise HTTPException(status_code=422, detail="scope inválido. Use single, future ou all")
+
+        update_tasks_by_scope(
+            db=db,
+            reference_task=task,
+            recurrence_group_id=task.recurrence_group_id or "",
+            scope=scope,
+            payload=TaskUpdate(**fields),
+        )
+        return
+
+    if intent == "delete_task":
+        task = _resolve_task_reference(db, data)
+        db.delete(task)
+        return
+
+    if intent == "delete_recurring_task":
+        task = _resolve_task_reference(db, data)
+        scope = data.get("scope", "single")
+
+        if scope not in VALID_SCOPES:
+            raise HTTPException(status_code=422, detail="scope inválido. Use single, future ou all")
+
+        delete_tasks_by_scope(
+            db=db,
+            reference_task=task,
+            recurrence_group_id=task.recurrence_group_id or "",
+            scope=scope,
         )
         return
 
