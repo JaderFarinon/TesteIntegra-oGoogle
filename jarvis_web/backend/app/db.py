@@ -4,7 +4,7 @@ from collections.abc import Generator
 from datetime import date, datetime, time
 from pathlib import Path
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -38,11 +38,33 @@ def init_database() -> None:
     """Inicializa estrutura do banco e popula dados de exemplo opcionalmente."""
     _prepare_sqlite_path(settings.database_url)
     Base.metadata.create_all(bind=engine)
+    _ensure_tasks_schema_compatibility()
 
     if settings.database_seed_enabled:
         with SessionLocal() as db:
             if _database_is_empty(db):
                 _seed_initial_data(db)
+
+
+def _ensure_tasks_schema_compatibility() -> None:
+    """Garante colunas novas de recorrência sem migração externa."""
+    inspector = inspect(engine)
+    if "tasks" not in inspector.get_table_names():
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("tasks")}
+    column_statements = {
+        "is_recurring": "ALTER TABLE tasks ADD COLUMN is_recurring BOOLEAN NOT NULL DEFAULT 0",
+        "recurrence_group_id": "ALTER TABLE tasks ADD COLUMN recurrence_group_id VARCHAR(36)",
+        "recurrence_pattern": "ALTER TABLE tasks ADD COLUMN recurrence_pattern VARCHAR(30)",
+        "recurrence_meta": "ALTER TABLE tasks ADD COLUMN recurrence_meta TEXT",
+        "original_prompt": "ALTER TABLE tasks ADD COLUMN original_prompt TEXT",
+    }
+
+    with engine.begin() as connection:
+        for column_name, ddl in column_statements.items():
+            if column_name not in existing_columns:
+                connection.execute(text(ddl))
 
 
 def _prepare_sqlite_path(database_url: str) -> None:

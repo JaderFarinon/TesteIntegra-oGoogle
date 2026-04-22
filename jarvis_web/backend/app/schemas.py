@@ -1,5 +1,5 @@
 from datetime import date, datetime, time
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -52,18 +52,65 @@ class TaskBase(BaseModel):
     priority: str = Field(default="medium", max_length=20)
     status: str = Field(default="pending", max_length=30)
     due_date: Optional[date] = None
+    is_recurring: bool = False
+    recurrence_group_id: Optional[str] = Field(default=None, max_length=36)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=30)
+    recurrence_meta: Optional[str] = None
+    original_prompt: Optional[str] = None
 
 
 class TaskCreate(TaskBase):
     pass
 
 
-class TaskUpdate(TaskBase):
-    pass
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None)
+    priority: Optional[str] = Field(default=None, max_length=20)
+    status: Optional[str] = Field(default=None, max_length=30)
+    due_date: Optional[date] = None
+    is_recurring: Optional[bool] = None
+    recurrence_group_id: Optional[str] = Field(default=None, max_length=36)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=30)
+    recurrence_meta: Optional[str] = None
+    original_prompt: Optional[str] = None
 
 
 class TaskOut(TimestampOut, TaskBase):
     pass
+
+
+class RecurringTaskCreate(BaseModel):
+    title: str = Field(..., max_length=200)
+    description: Optional[str] = None
+    priority: str = Field(default="medium", max_length=20)
+    status: str = Field(default="pending", max_length=30)
+    start_date: date
+    end_date: date
+    recurrence_pattern: str = Field(..., max_length=30)
+    recurrence_meta: dict[str, Any] = Field(default_factory=dict)
+    original_prompt: Optional[str] = None
+
+
+class RecurringTaskCreateOut(BaseModel):
+    recurrence_group_id: str
+    total_created: int
+    tasks: list[TaskOut]
+
+
+
+RecurrenceScope = Literal["single", "future", "all"]
+
+
+class TaskBulkOperationOut(BaseModel):
+    recurrence_group_id: Optional[str] = None
+    scope: RecurrenceScope
+    affected_count: int
+    message: str
+
+
+class TaskBulkUpdateOut(TaskBulkOperationOut):
+    tasks: list[TaskOut]
 
 
 class AppointmentBase(BaseModel):
