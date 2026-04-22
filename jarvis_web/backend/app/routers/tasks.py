@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Task
-from app.schemas import TaskCreate, TaskOut, TaskUpdate
+from app.schemas import RecurringTaskCreate, RecurringTaskCreateOut, TaskCreate, TaskOut, TaskUpdate
+from app.services.task_recurrence_service import create_recurring_tasks_batch
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -22,13 +23,23 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
     return task
 
 
+@router.post("/recurring", response_model=RecurringTaskCreateOut, status_code=status.HTTP_201_CREATED)
+def create_recurring_tasks(payload: RecurringTaskCreate, db: Session = Depends(get_db)):
+    recurrence_group_id, tasks = create_recurring_tasks_batch(db, payload)
+    return RecurringTaskCreateOut(
+        recurrence_group_id=recurrence_group_id,
+        total_created=len(tasks),
+        tasks=tasks,
+    )
+
+
 @router.put("/{task_id}", response_model=TaskOut)
 def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)):
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task não encontrada")
 
-    for key, value in payload.model_dump().items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(task, key, value)
 
     db.commit()

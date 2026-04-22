@@ -61,6 +61,11 @@ class Task(Base, TimestampMixin):
     priority: Mapped[str] = mapped_column(String(20), default="medium", nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
     due_date: Mapped[Optional[date]] = mapped_column(Date, default=None, nullable=True)
+    is_recurring: Mapped[bool] = mapped_column(default=False, nullable=False)
+    recurrence_group_id: Mapped[Optional[str]] = mapped_column(String(36), default=None, nullable=True)
+    recurrence_pattern: Mapped[Optional[str]] = mapped_column(String(30), default=None, nullable=True)
+    recurrence_meta: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
+    original_prompt: Mapped[Optional[str]] = mapped_column(Text, default=None, nullable=True)
 
 
 class Appointment(Base, TimestampMixin):
