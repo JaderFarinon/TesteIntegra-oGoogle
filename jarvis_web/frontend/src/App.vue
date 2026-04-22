@@ -34,5 +34,5 @@ const menuItems = [
   { path: '/configuracoes', label: 'Configurações' },
 ]
 
-const currentTitle = computed(() => menuItems.find((item) => item.path === route.path)?.label || 'Jarvis Web')
+const currentTitle = computed(() => menuItems.find((item) => item.path === route.path)?.label || 'Jarvis')
 </script>

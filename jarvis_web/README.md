@@ -1,4 +1,4 @@
-# jarvis_web
+# Jarvis
 
 README final, direto e completo para rodar o projeto localmente em **Debian/Ubuntu**.
 

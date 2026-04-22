@@ -1,4 +1,4 @@
-# jarvis_web
+# Jarvis
 
 Projeto fullstack com **frontend (Vue 3 + Vite + Tailwind)** e **backend (FastAPI + SQLAlchemy + SQLite)**.
 
