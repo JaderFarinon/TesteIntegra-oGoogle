@@ -11,7 +11,7 @@
     >
       <div class="mb-6 border-b border-slate-200 pb-4">
         <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Jarvis</p>
-        <h1 class="text-2xl font-bold text-slate-900">jarvis_web</h1>
+        <h1 class="text-2xl font-bold text-slate-900">Jarvis</h1>
       </div>
 
       <nav class="space-y-1">
