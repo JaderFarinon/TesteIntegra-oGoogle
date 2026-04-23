@@ -16,6 +16,15 @@ export const moduleApi = {
   remove: (module, id) => api.delete(`/api/${module}/${id}`),
 }
 
+export const taskApi = {
+  createSimple: (payload) => api.post('/api/tasks', payload),
+  createRecurring: (payload) => api.post('/api/tasks/recurring', payload),
+  updateRecurring: (recurrenceGroupId, taskId, scope, payload) =>
+    api.put(`/api/tasks/recurring/${recurrenceGroupId}/${taskId}`, payload, { params: { scope } }),
+  deleteRecurring: (recurrenceGroupId, taskId, scope) =>
+    api.delete(`/api/tasks/recurring/${recurrenceGroupId}/${taskId}`, { params: { scope } }),
+}
+
 export const dashboardApi = {
   tasks: () => moduleApi.list('tasks'),
   appointments: () => moduleApi.list('appointments'),
